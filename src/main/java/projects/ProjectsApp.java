@@ -18,13 +18,15 @@ import projects.service.ProjectService;
 public class ProjectsApp {
 	private Scanner scanner = new Scanner(System.in);
 	private ProjectService projectService = new ProjectService();
-	private Object curProject;
+	private Project curProject;
 	
 	// @formatter:off
 	private List<String> operations = List.of(
 			"1) Add project",
 			"2) List projects",
-			"3) Select a project"
+			"3) Select a project",
+			"4) Update project details",
+			"5) Delete project"
 			);
 	// @formatter:on	
 		
@@ -63,7 +65,12 @@ public class ProjectsApp {
 				case 3:
 					selectproject();
 					break;
-					
+				case 4:
+					updateProjectDetails();
+					break;
+				case 5:
+					deleteProject();
+					break;
 				default:
 					System.out.println("\n" + selection + " is not a valid selection. try again."); 
 				}
@@ -73,19 +80,76 @@ public class ProjectsApp {
 			}
 		}		
 	}
+	
+	/**
+	* This method allows the user to input with new information to "modify a project".
+	*/
+	private void updateProjectDetails() {		
+		if (Objects.isNull(curProject)) {
+			System.out.println("\nPlease select a project.");
+			return ;
+		}	
+		
+		String projectName = getStringInput("Enter the project name [" +  curProject.getProjectName() + "]");		
+		BigDecimal estimatedHours = getDecimalInput("Enter the estimated hours [" + curProject.getEstimatedHours() + "]");		
+		BigDecimal actualHours = getDecimalInput("Enter the actual hours [" + curProject.getActualHours() + "]");		
+		Integer difficulty = getIntInput("Enter the project difficulty (1-5) [" + curProject.getDifficulty() + "]");		
+		String notes = getStringInput("Enter the project notes [" + curProject.getNotes() + "]");
+		
+		Project project = new Project();
+		
+		project.setProjectId(curProject.getProjectId());
+		
+		project.setProjectName(Objects.isNull(projectName) ? curProject.getProjectName() : projectName);		
+		project.setEstimatedHours(Objects.isNull(estimatedHours) ? curProject.getEstimatedHours() : estimatedHours);
+		project.setActualHours(Objects.isNull(actualHours) ? curProject.getActualHours() : actualHours);
+		project.setDifficulty(Objects.isNull(difficulty) ? curProject.getDifficulty() : difficulty);
+		project.setNotes(Objects.isNull(notes) ? curProject.getNotes() : notes);
+		
+		projectService.modifyProjectDetails(project);
+		
+		curProject = projectService.fetchProjectById(curProject.getProjectId());
+		}
 
+	/**
+	 * This method allows the user to select and "delete a project". 
+	 */
+	private void deleteProject() {
+		listProjects();		
+		Integer projectId = getIntInput("Enter a project ID to delete a project");
+		
+		projectService.deleteProject(projectId);
+		System.out.println("Project " + projectId + " was deleted successfully.");
+			
+			if (Objects.nonNull(curProject) && curProject.getProjectId().equals(projectId)) {
+				curProject = null;
+			}
+		}
+	
+	/**
+	 * This method allows the user to select a "current project". the current project is on which
+	 * you can add materials, steps, and categories.	
+	 */
 	private void selectproject() {
 		listProjects();
 		Integer projectId = getIntInput("Enter a project ID to select a project");
 		
-		/*Unselect the current project.*/
+		/*
+	     * Unselect the current project. This must be done as a pre-step to fetching the project because
+	     * fetchProjectById() will throw an exception if an invalid project ID is entered, which would
+	     * leave the currently selected project intact.
+	     */
 		curProject = null;
 		
 		/*This will throw an exception if an invalid project ID is entered.*/
 		curProject = projectService.fetchProjectById(projectId);
 		
 	}
-
+	
+	/**
+	 * This method calls the project service to retrieve a list of projects from the projects table.
+	 * It then uses a Lambda expression to print the project IDs and names on the console. 
+	 */
 	private void listProjects() {
 		List<Project> projects =  projectService.fetchAllProjects();
 		
@@ -124,7 +188,7 @@ public class ProjectsApp {
 	 * @throws DbException Thrown if an error occurs converting the number to a BigDecimal.
 	 */
 	private BigDecimal getDecimalInput(String prompt) {
-String input = getStringInput(prompt);
+		String input = getStringInput(prompt);
 		
 		if (Objects.isNull(input)) {
 		return null;
@@ -141,7 +205,7 @@ String input = getStringInput(prompt);
 	/**
 	 * Called when the user wants to exit the application. It prints a message and returns 
 	 * {@code true} to terminate the app.
-	 * @return
+	 * @return {@code true}
 	 */
 	private boolean exitMenu() {
 		System.out.println("Exiting the menu");
@@ -152,7 +216,7 @@ String input = getStringInput(prompt);
 	 * This method prints the available menu selections. It then gets the user's menu selection from 
 	 * the console and converts it to an int.
 	 * 
-	 * @return
+	 * @return The menu selection as an int or -1 if nothing is selected.
 	 */
 	private int getUserSelection() {		
 		printOperations();		
@@ -202,6 +266,7 @@ String input = getStringInput(prompt);
 	
 	/**
 	 * Print the menu selections, one per line.
+	 * With Lambda expression
 	 */
 	private void printOperations() {	
 		System.out.println("\nThese are the available selections. Press the Enter key to quit:");
